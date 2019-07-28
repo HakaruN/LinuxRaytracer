@@ -1,0 +1,4 @@
+./Install
+cp libGLEW.so /usr/lib/libGLEW.so.2.2
+make
+./cleanScript

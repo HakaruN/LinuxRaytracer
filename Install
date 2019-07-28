@@ -1,0 +1,12 @@
+sudo apt-get install git
+sudo apt-get install cmake
+git clone https://github.com/glfw/glfw.git glfw.zip
+unzip glfw.zip
+rm glfw.zip
+cd glfw
+cmake -G "Unix Makefiles"
+sudo apt-get build-dep glfw3
+sudo apt-get install xorg-dev libglu1-mesa-dev
+make
+make install
+
