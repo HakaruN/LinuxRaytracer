@@ -1,9 +1,25 @@
 sudo apt-get install git
 sudo apt-get install cmake
-git clone https://github.com/glfw/glfw.git glfw.zip
-unzip glfw.zip
-rm glfw.zip
-cd glfw
+
+git clone https://github.com/glfw/glfw.git glfw
+sudo mkdir /usr/local/include/GLFW
+sudo cp glfw/include/GLFW/glfw3.h /usr/local/include/GLFW/glfw3.h
+rm -r -f glfw
+
+git clone https://github.com/nigels-com/glew.git glew
+cd glew/auto
+make
+cd ..
+make
+cd ..
+mkdir Raytracer/src/GL/
+mkdir Raytracer/src/vendor/imgui/GL
+cp -r glew/include/GL/glew.h Raytracer/src/GL/
+cp -r glew/include/GL/glew.h Raytracer/src/vendor/imgui/GL/
+sudo cp glew/lib/libGLEW.so.2.2 /usr/lib/libGLEW.so.2.2
+rm -r -f glew
+
+
 cmake -G "Unix Makefiles"
 sudo apt-get build-dep glfw3
 sudo apt-get install xorg-dev libglu1-mesa-dev
