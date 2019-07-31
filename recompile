@@ -1,0 +1,2 @@
+make
+rm -r *.o
