@@ -1,9 +1,14 @@
-sudo apt-get install git
-sudo apt-get install cmake
+sudo
+apt-get install git
+apt-get install cmake
+apt-get install libmesa-dev
+apt-get install xorg-dev libglu1-mesa-dev
+apt-get build-dep glfw3
+
 
 git clone https://github.com/glfw/glfw.git glfw
-sudo mkdir /usr/local/include/GLFW
-sudo cp glfw/include/GLFW/glfw3.h /usr/local/include/GLFW/glfw3.h
+mkdir /usr/local/include/GLFW
+cp glfw/include/GLFW/glfw3.h /usr/local/include/GLFW/glfw3.h
 rm -r -f glfw
 
 git clone https://github.com/nigels-com/glew.git glew
@@ -21,8 +26,6 @@ rm -r -f glew
 
 
 cmake -G "Unix Makefiles"
-sudo apt-get build-dep glfw3
-sudo apt-get install xorg-dev libglu1-mesa-dev
 make
 make install
 

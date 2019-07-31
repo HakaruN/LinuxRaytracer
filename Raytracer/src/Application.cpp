@@ -6,8 +6,7 @@
 #include </usr/local/include/GLFW/glfw3.h>
 #include <fstream>
 #include <iostream>
-#include <iostream>
-#include <fstream>
+
 #include <chrono>
 #include <thread>
 #include <vector>
@@ -32,6 +31,22 @@
 
 //prototyping the render function
 void render(int width, int height, int coloursPerPixel, double fov, float* frameBuffer, bool renderingDepthBuffer, Colour& background, Light light, std::vector<Renderable*>* renderables, std::vector<Camera*>* cameras, int cameraIndex , float guiVerti, float guiHoriz, float guiDist, int guiObjectIndex, bool isCheckerboarding, bool perspective, bool multithreaded);
+int getWindow(GLFWwindow* window, int width, int height, const char* windowName);
+
+inline void lightControls(float& lightHoriz,float& lightVerti ,float& lightDepth );
+inline void renderingControls(bool& isCheckerboarding, bool& multithreaded, bool& renderingDepthBuffer);
+inline void fpsCounter(double& frameRate);
+inline void objectColour(std::vector<Renderable*>* renderables, int& guiObjectIndex);
+inline void backgroundColour();
+inline void objectManipulation(int& guiObjectIndex, std::vector<Renderable*>* renderables, Vector& cameraPosition, float& guiHoriz, float& guiVerti, float& distance, float guiSize);
+inline void cameraControls(int& guiCameraIndex, std::vector<Camera*>* cameras, float& camPosX, float& camPosY, float& camPosZ, float& tempFov, bool& freeCam);
+inline void postRender(
+	const int& width, const int& height, float* frameBuffer
+	,GLFWwindow* window, GLFWwindow* GUIWindow,float& 
+	lightHoriz,float& lightVerti ,float& lightDepth, bool& 
+	isCheckerboarding, bool& multithreaded, bool& renderingDepthBuffer, 
+	std::vector<Renderable*>* renderables,int& guiObjectIndex, Vector& cameraPosition, float& guiHoriz, float& guiVerti, float& distance, float& guiSize,
+	int& guiCameraIndex, std::vector<Camera*>* cameras, float& camPosX, float& camPosY, float& camPosZ, float& tempFov, bool& freeCam);
 
 Colour white(255, 255, 255);
 Colour darkWhite(128, 128, 128);
@@ -49,13 +64,13 @@ static double frameRate;
 
 int main(void)
 {
-
 	GLFWwindow* window;
 	GLFWwindow* GUIWindow;
 
 	bool isCheckerboarding = true;
 	bool perspective = true;
 	bool freeCam = true;
+	bool camMove = true;
 	bool multithreaded = true;
 	bool show_demo_window = true;
 	bool show_another_window = false;
@@ -67,16 +82,15 @@ int main(void)
 	rgbBackgroundColour[1] = clear_colour.y;
 	rgbBackgroundColour[2] = clear_colour.z;
 
-
-	/* Initialize the library */
 	if (!glfwInit())
-		return -1;
+        return -1;
+
 
 #pragma region  window and framebuffer setup
 
 
-	const int width = 1600;
-	const int height = 900;
+	const int width = 800;
+	const int height = 400;
 
 	const int GUIWidth = 500;
 	const int GUIHeight = 500;
@@ -86,16 +100,18 @@ int main(void)
 #pragma endregion
 
 #pragma region OpenGL window setup
+
 	window = glfwCreateWindow(width, height, "Render", NULL, NULL);//Creating the openGL rendering window
-	if (!window)
+    if (!window)
 	{
-		glfwTerminate();
+		glfwTerminate(); 
 		return -1;
 	}
 
 	glfwMakeContextCurrent(window);//makes the rendering window the current window
-	if (glewInit() != GLEW_OK)
-		return -1;
+	//if (glewInit() != GLEW_OK)
+        //return -1;
+
 
 
 	GUIWindow = glfwCreateWindow(GUIWidth, GUIHeight, "GUI", NULL, NULL);//creates the window using openGL for the GUI
@@ -108,9 +124,10 @@ int main(void)
 	glfwMakeContextCurrent(GUIWindow);//makes the GUI window the current window
 	if (glewInit() != GLEW_OK)
 		return -1;
+	
 
 
-	glfwMakeContextCurrent(NULL);//makes no window the current window
+	//glfwMakeContextCurrent(NULL);//makes no window the current window
 #pragma endregion		
 
 #pragma region adding and renderable objects to the scene
@@ -134,7 +151,7 @@ int main(void)
 	Sphere* blackSphere = new Sphere(Vector(-15, 15, 50), black, 7);
 
 
-	for (unsigned int i = 0; i < 12; i++)//make some stars
+	for (unsigned int i = 0; i < 6; i++)//make some stars
 	{
 		Sphere* whiteStar = new Sphere(Vector(
 			(float)(rand() % 100 - 50),
@@ -153,12 +170,12 @@ int main(void)
 
 	//Triangle* blueTriangle = new Triangle(Vector(width / 2, height / 2, 50),blue,Vector(-100, 0, 10),Vector(100, 0, 10),Vector(100, 0, 10));
 	
-	renderables->push_back(blueTriangle);
+	//renderables->push_back(blueTriangle);
 
 	//renderables->push_back(greenTriangle);
 
 	renderables->push_back(greenSphere);
-	renderables->push_back(blueSphere);
+	//renderables->push_back(blueSphere);
 	renderables->push_back(redSphere);
 	//renderables->push_back(whiteSphere);
 	//renderables->push_back(blackSphere);
@@ -252,7 +269,7 @@ int main(void)
 
 
 
-	while (!glfwWindowShouldClose(window) || !glfwWindowShouldClose(GUIWindow))
+	while (!glfwWindowShouldClose(window))
 	{
 		float tempFov = fov;
 		light.setPosition(Vector(lightHoriz, lightVerti, lightDepth));
@@ -264,142 +281,17 @@ int main(void)
 		glClear(GL_COLOR_BUFFER_BIT);
 		render(width, height, coloursPerPixel, fov, frameBuffer, renderingDepthBuffer, background, light, renderables, cameras, guiCameraIndex, guiVerti, guiHoriz, distance, guiObjectIndex, isCheckerboarding, perspective, multithreaded);
 
-		glDrawPixels(width, height, GL_RGB, GL_FLOAT, frameBuffer);	
 
-		glfwSwapBuffers(window);
-
-		glfwMakeContextCurrent(GUIWindow);
-		glClear(GL_COLOR_BUFFER_BIT);
-		ImGui_ImplOpenGL3_NewFrame();
-		ImGui_ImplGlfw_NewFrame();
-		ImGui::NewFrame();
-
-
-
-		
-		///camera controls
-		{//window for render controls
-			ImGui::Begin("Camera Controls");
-
-			ImGui::SliderInt("Camera select: ", &guiCameraIndex, 0, (int) cameras->size() - 1);
-
-			camPosX = cameras->at(guiCameraIndex)->mOrigin.GetX();
-			camPosY = cameras->at(guiCameraIndex)->mOrigin.GetY();
-			camPosZ = cameras->at(guiCameraIndex)->mOrigin.GetZ();
-
-			tempFov = (float)cameras->at(guiCameraIndex)->mFov;
-
-			ImGui::SliderFloat("FOV", &tempFov, 5.0f, 90.0f);
-
-			ImGui::SliderFloat("Cam-X", &camPosX, -5, 5);
-			ImGui::SliderFloat("Cam-Y", &camPosY, -5, 5);
-			ImGui::SliderFloat("Cam-Z", &camPosZ, -4, 150);
-			ImGui::Checkbox("Free look", &freeCam);
-
-			//camLook.SetX(camPosX);
-			//camLook.SetY(camPosY);
-			//camLook.SetZ(camPosZ);
-			ImGui::End();
-		}
-		///Object manipulation
-		{
-			//static int counter = 0;
-
-			ImGui::Begin("Objects");                          // Create a window called "Hello, world!" and append into it.
-
-			ImGui::SliderInt("object select", &guiObjectIndex, 0, (int)renderables->size() - 1);
-
-			guiHoriz = renderables->at(guiObjectIndex)->GetPos().GetX();
-			guiVerti = renderables->at(guiObjectIndex)->GetPos().GetY();
-			distance = renderables->at(guiObjectIndex)->GetPos().GetZ();
-			guiSize = renderables->at(guiObjectIndex)->getSize();
-
-
-			ImGui::SliderFloat("Vertical", &guiVerti, -50.0f, 50.0f);      // Edit 1 float using a slider from 0.0f to 1.0f
-			ImGui::SliderFloat("Horisontal", &guiHoriz, -50.0f, 50.0f);
-
-			ImGui::SliderFloat("Distance", &distance, 0.0f, 100.0f);
-			ImGui::SliderFloat("Size", &guiSize, 0.0f, 100.0f);
-
-
-			
-			ImGui::Text("Camera pos: %f,%f,%f", cameraPosition.GetX(), cameraPosition.GetY(), cameraPosition.GetZ());
-			//ImGui::Text("Object type: %", renderables->at(guiObjectIndex)->GetType());
-			ImGui::Text("Object pos: %f,%f,%f", renderables->at(guiObjectIndex)->GetPos().GetX(), renderables->at(guiObjectIndex)->GetPos().GetY(), renderables->at(guiObjectIndex)->GetPos().GetZ());
-			
-			//if (ImGui::Button("Button"))// Buttons return true when clicked (most widgets return true when edited/activated)
-			//render(width, height, frameBuffer, evenBuffer, oddBuffer, depthBuffer, light, renderables, renderablesCount, guiVerti, guiHoriz, guiObjectIndex, isCheckerboarding);
-			//ImGui::SameLine();
-			//ImGui::Text("counter = %d", counter);
-			
-			//ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-			ImGui::End();
-		}
-		///background colour
-		{
-			ImGui::Begin("Background");
-			ImGui::ColorPicker3("Background Colour", rgbBackgroundColour);
-			background.SetRed(rgbBackgroundColour[0]);
-			background.SetGreen(rgbBackgroundColour[1]);
-			background.SetBlue(rgbBackgroundColour[2]);
-
-			ImGui::End();
-		}
-		///object colour
-		{
-			ImGui::Begin("Object");
-
-			//setting the colour picker
-			rgbObjectColour[0] = renderables->at(guiObjectIndex)->GetColour().GetRed()/ 255;
-			//std::cout << "Red " << renderables->at(guiObjectIndex)->GetColour().GetRed() << std::endl;
-			rgbObjectColour[1] = renderables->at(guiObjectIndex)->GetColour().GetGreen() / 255;
-			//std::cout << "Green " << renderables->at(guiObjectIndex)->GetColour().GetGreen() << std::endl;
-			rgbObjectColour[2] = renderables->at(guiObjectIndex)->GetColour().GetBlue() / 255;
-			//std::cout << "Blue " << renderables->at(guiObjectIndex)->GetColour().GetBlue() << std::endl;
-
-			//adjust the colour picker
-			ImGui::ColorPicker3("Object Colour", rgbObjectColour);
-
-			//set the objects colour
-			Colour colour(rgbObjectColour[0] * 255, rgbObjectColour[1] * 255, rgbObjectColour[2] * 255);
-			//std::cout << "Red: " << rgbObjectColour[0] << "Green: " << rgbObjectColour[1] << "Blue: " << rgbObjectColour[2] << std::endl;
-			renderables->at(guiObjectIndex)->SetColour(colour);
-
-			ImGui::End();
-		}
-		///fps counter
-		{//window for fps
-			ImGui::Begin("FPS");
-			ImGui::Text("FPS %.2f FPS", frameRate);
-			ImGui::End();
-		}
-		///rendering controls
-		{//window for render controls
-			ImGui::Begin("Render Controls");
-			ImGui::Checkbox("Checkerboarding", &isCheckerboarding);      // Edit bools storing our window open/close state
-			//ImGui::Checkbox("Perspective", &perspective);
-			ImGui::Checkbox("Multithreading", &multithreaded);
-			ImGui::Checkbox("Render depthBuffer", &renderingDepthBuffer);
-			ImGui::End();
-		}
-		///light controls
-		{
-			ImGui::Begin("Light controls");
-			ImGui::SliderFloat("Light X", &lightHoriz, -80.0f, 80.0f);
-			ImGui::SliderFloat("Light Y", &lightVerti, -80.0f, 80.0f);      // Edit 1 float using a slider from 0.0f to 1.0f
-			ImGui::SliderFloat("Light Z", &lightDepth, -80.0f, 80.0f);
-			ImGui::End();
-		}
+		postRender(width, height, frameBuffer, window, GUIWindow, lightHoriz, lightVerti, lightDepth, isCheckerboarding, multithreaded, renderingDepthBuffer, renderables,
+			guiObjectIndex, cameraPosition, guiHoriz, guiVerti, distance, guiSize, guiCameraIndex, cameras, camPosX, camPosY, camPosZ, tempFov, freeCam);
 
 		fov = tempFov;
 
-		cameraPosition.SetX(camPosX);
-		cameraPosition.SetY(camPosY);
-		cameraPosition.SetZ(camPosZ);
 
+		cameraPosition.SetX(camPosX); cameraPosition.SetY(camPosY);	cameraPosition.SetZ(camPosZ);
 		if (freeCam)
 		{
-			cameras->at(guiCameraIndex)->update(cameraPosition, Vector(0, 0, cameraPosition.GetZ() + 1), Vector(0, 1, 0), fov, (float)width / (float)height);
+			cameras->at(guiCameraIndex)->update(cameraPosition, Vector(0, 0, camPosZ + 1000), Vector(0, 1, 0), fov, (float)width / (float)height);
 		}
 		else
 		{
@@ -410,7 +302,6 @@ int main(void)
 			cameras->at(guiCameraIndex)->update(cameraPosition, Vector::vectorBetweenVectors(renderables->at(guiObjectIndex)->GetPos(), Vector(camPosX, camPosY, camPosZ)), Vector(0, 1, 0), fov, (float)width / (float)height);
 		}
 		
-
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 		glfwSwapBuffers(GUIWindow);
@@ -453,6 +344,33 @@ int main(void)
 	return 0;
 }
 
+inline void postRender(
+	const int& width, const int& height, float* frameBuffer
+	,GLFWwindow* window, GLFWwindow* GUIWindow,float& 
+	lightHoriz,float& lightVerti ,float& lightDepth, bool& 
+	isCheckerboarding, bool& multithreaded, bool& renderingDepthBuffer, 
+	std::vector<Renderable*>* renderables,int& guiObjectIndex, Vector& cameraPosition, float& guiHoriz, float& guiVerti, float& distance, float& guiSize,
+	int& guiCameraIndex, std::vector<Camera*>* cameras, float& camPosX, float& camPosY, float& camPosZ, float& tempFov, bool& freeCam)
+{
+		glDrawPixels(width, height, GL_RGB, GL_FLOAT, frameBuffer);	
+
+		glfwSwapBuffers(window);
+
+		glfwMakeContextCurrent(GUIWindow);
+		glClear(GL_COLOR_BUFFER_BIT);
+		ImGui_ImplOpenGL3_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+		ImGui::NewFrame();
+
+		lightControls(lightHoriz, lightVerti, lightDepth);
+		renderingControls(isCheckerboarding, multithreaded, renderingDepthBuffer);
+		fpsCounter(frameRate);
+		objectColour(renderables, guiObjectIndex);
+		backgroundColour();
+		objectManipulation(guiObjectIndex, renderables, cameraPosition, guiHoriz, guiVerti, distance, guiSize);
+		cameraControls(guiCameraIndex, cameras, camPosX, camPosY, camPosZ, tempFov, freeCam);
+}
+
 void render(int width, int height, int coloursPerPixel, double fov, float* frameBuffer, bool renderingDepthBuffer, Colour& background, Light light, std::vector<Renderable*>* renderables, std::vector<Camera*>* cameras, int cameraIndex, float guiVerti, float guiHoriz, float guiDist, int guiObjectIndex, bool isCheckerboarding, bool perspective, bool multithreaded)
 {
 	renderables->at(guiObjectIndex)->SetPos(Vector(guiHoriz, guiVerti, guiDist));
@@ -461,5 +379,124 @@ void render(int width, int height, int coloursPerPixel, double fov, float* frame
 
 	std::chrono::steady_clock::time_point end(std::chrono::steady_clock::now());
 	frameRate = 1 / std::chrono::duration_cast<std::chrono::duration<double>>(end - start).count();
+
 }
 
+inline void lightControls(float& lightHoriz,float& lightVerti ,float& lightDepth)
+{
+	ImGui::Begin("Light controls");
+	ImGui::SliderFloat("Light X", &lightHoriz, -80.0f, 80.0f);
+	ImGui::SliderFloat("Light Y", &lightVerti, -80.0f, 80.0f);      // Edit 1 float using a slider from 0.0f to 1.0f
+	ImGui::SliderFloat("Light Z", &lightDepth, -80.0f, 80.0f);
+	ImGui::End();
+}
+inline void renderingControls(bool& isCheckerboarding, bool& multithreaded, bool& renderingDepthBuffer)
+{
+	ImGui::Begin("Render Controls");
+	ImGui::Checkbox("Checkerboarding", &isCheckerboarding);      // Edit bools storing our window open/close state
+	//ImGui::Checkbox("Perspective", &perspective);
+	ImGui::Checkbox("Multithreading", &multithreaded);
+	ImGui::Checkbox("Render depthBuffer", &renderingDepthBuffer);
+	ImGui::End();
+}
+inline void fpsCounter(double& frameRate)
+{
+	ImGui::Begin("FPS");
+	ImGui::Text("FPS %.2f FPS", frameRate);
+	ImGui::End();
+}
+inline void objectColour(std::vector<Renderable*>* renderables, int& guiObjectIndex)
+{
+	ImGui::Begin("Object");
+
+	//setting the colour picker
+	rgbObjectColour[0] = renderables->at(guiObjectIndex)->GetColour().GetRed()/ 255;
+	//std::cout << "Red " << renderables->at(guiObjectIndex)->GetColour().GetRed() << std::endl;
+	rgbObjectColour[1] = renderables->at(guiObjectIndex)->GetColour().GetGreen() / 255;
+	//std::cout << "Green " << renderables->at(guiObjectIndex)->GetColour().GetGreen() << std::endl;
+	rgbObjectColour[2] = renderables->at(guiObjectIndex)->GetColour().GetBlue() / 255;
+	//std::cout << "Blue " << renderables->at(guiObjectIndex)->GetColour().GetBlue() << std::endl;
+
+	//adjust the colour picker
+	ImGui::ColorPicker3("Object Colour", rgbObjectColour);
+
+	//set the objects colour
+	Colour colour(rgbObjectColour[0] * 255, rgbObjectColour[1] * 255, rgbObjectColour[2] * 255);
+	//std::cout << "Red: " << rgbObjectColour[0] << "Green: " << rgbObjectColour[1] << "Blue: " << rgbObjectColour[2] << std::endl;
+	renderables->at(guiObjectIndex)->SetColour(colour);
+
+	ImGui::End();
+}
+inline void backgroundColour()
+{
+	ImGui::Begin("Background");
+	ImGui::ColorPicker3("Background Colour", rgbBackgroundColour);
+	background.SetRed(rgbBackgroundColour[0]);
+	background.SetGreen(rgbBackgroundColour[1]);
+	background.SetBlue(rgbBackgroundColour[2]);
+
+	ImGui::End();
+}
+inline void objectManipulation(int& guiObjectIndex, std::vector<Renderable*>* renderables, Vector& cameraPosition, float& guiHoriz, float& guiVerti, float& distance, float guiSize)
+{
+	//static int counter = 0;
+
+			ImGui::Begin("Objects");                          // Create a window called "Hello, world!" and append into it.
+
+			ImGui::SliderInt("object select", &guiObjectIndex, 0, (int)renderables->size() - 1);
+
+			guiHoriz = renderables->at(guiObjectIndex)->GetPos().GetX();
+			guiVerti = renderables->at(guiObjectIndex)->GetPos().GetY();
+			distance = renderables->at(guiObjectIndex)->GetPos().GetZ();
+			guiSize = renderables->at(guiObjectIndex)->getSize();
+
+
+			ImGui::SliderFloat("Vertical", &guiVerti, -50.0f, 50.0f);      // Edit 1 float using a slider from 0.0f to 1.0f
+			ImGui::SliderFloat("Horisontal", &guiHoriz, -50.0f, 50.0f);
+
+			ImGui::SliderFloat("Distance", &distance, 0.0f, 100.0f);
+			ImGui::SliderFloat("Size", &guiSize, 0.0f, 100.0f);
+
+
+			
+			ImGui::Text("Camera pos: %f,%f,%f", cameraPosition.GetX(), cameraPosition.GetY(), cameraPosition.GetZ());
+			//ImGui::Text("Object type: %", renderables->at(guiObjectIndex)->GetType());
+			ImGui::Text("Object pos: %f,%f,%f", renderables->at(guiObjectIndex)->GetPos().GetX(), renderables->at(guiObjectIndex)->GetPos().GetY(), renderables->at(guiObjectIndex)->GetPos().GetZ());
+			
+			//if (ImGui::Button("Button"))// Buttons return true when clicked (most widgets return true when edited/activated)
+			//render(width, height, frameBuffer, evenBuffer, oddBuffer, depthBuffer, light, renderables, renderablesCount, guiVerti, guiHoriz, guiObjectIndex, isCheckerboarding);
+			//ImGui::SameLine();
+			//ImGui::Text("counter = %d", counter);
+			
+			//ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+			ImGui::End();
+}
+inline void cameraControls(int& guiCameraIndex, std::vector<Camera*>* cameras, float& camPosX, float& camPosY, float& camPosZ, float& tempFov, bool& freeCam)
+{
+	ImGui::Begin("Camera Controls");
+
+			ImGui::SliderInt("Camera select: ", &guiCameraIndex, 0, (int) cameras->size() - 1);
+
+			camPosX = cameras->at(guiCameraIndex)->mOrigin.GetX();
+			camPosY = cameras->at(guiCameraIndex)->mOrigin.GetY();
+			camPosZ = cameras->at(guiCameraIndex)->mOrigin.GetZ();
+
+			tempFov = (float)cameras->at(guiCameraIndex)->mFov;
+
+			ImGui::SliderFloat("FOV", &tempFov, 5.0f, 90.0f);
+
+			ImGui::SliderFloat("Cam-X", &camPosX, -100, 100);
+			ImGui::SliderFloat("Cam-Y", &camPosY, -100, 100);
+			ImGui::SliderFloat("Cam-Z", &camPosZ, -4, 150);
+
+			ImGui::Checkbox("Free look", &freeCam);
+			//ImGui::Checkbox("Camera Mov", &camMove);
+			//if(camMove)
+			//{
+			//}
+
+			//camLook.SetX(camPosX);
+			//camLook.SetY(camPosY);
+			//camLook.SetZ(camPosZ);
+			ImGui::End();
+}
