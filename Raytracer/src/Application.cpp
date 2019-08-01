@@ -344,6 +344,7 @@ int main(void)
 	return 0;
 }
 
+//This function is called after the render function
 inline void postRender(
 	const int& width, const int& height, float* frameBuffer
 	,GLFWwindow* window, GLFWwindow* GUIWindow,float& 
@@ -352,16 +353,20 @@ inline void postRender(
 	std::vector<Renderable*>* renderables,int& guiObjectIndex, Vector& cameraPosition, float& guiHoriz, float& guiVerti, float& distance, float& guiSize,
 	int& guiCameraIndex, std::vector<Camera*>* cameras, float& camPosX, float& camPosY, float& camPosZ, float& tempFov, bool& freeCam)
 {
+		//actually puts the pixels from the cpu framebuffer to the gpu framebuffer
 		glDrawPixels(width, height, GL_RGB, GL_FLOAT, frameBuffer);	
 
+		//actually swaps the newly drawn framebuffer to the screen
 		glfwSwapBuffers(window);
 
+		//selects the GUI window for processing
 		glfwMakeContextCurrent(GUIWindow);
 		glClear(GL_COLOR_BUFFER_BIT);
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 
+		//updates the GUI
 		lightControls(lightHoriz, lightVerti, lightDepth);
 		renderingControls(isCheckerboarding, multithreaded, renderingDepthBuffer);
 		fpsCounter(frameRate);
