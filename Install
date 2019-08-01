@@ -15,13 +15,13 @@ git clone https://github.com/nigels-com/glew.git glew
 cd glew/auto
 make
 cd ..
-make
+make install
 cd ..
-mkdir Raytracer/src/GL/
-mkdir Raytracer/src/vendor/imgui/GL
-cp -r glew/include/GL/glew.h Raytracer/src/GL/
-cp -r glew/include/GL/glew.h Raytracer/src/vendor/imgui/GL/
-sudo cp glew/lib/libGLEW.so.2.2 /usr/lib/libGLEW.so.2.2
+#mkdir Raytracer/src/GL/
+#mkdir Raytracer/src/vendor/imgui/GL
+#cp -r glew/include/GL/glew.h Raytracer/src/GL/
+#cp -r glew/include/GL/glew.h Raytracer/src/vendor/imgui/GL/
+#sudo cp glew/lib/libGLEW.so.2.2 /usr/lib/libGLEW.so.2.2
 rm -r -f glew
 
 
